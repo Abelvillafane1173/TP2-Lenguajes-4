@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Recorrido Real</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    
+    <style>
+        body { font-family: "Times New Roman", Times, serif; margin: 20px; color: black; }
+        h2 { margin-bottom: 15px; font-size: 24px; }
+        #mapa { width: 100%; height: 300px; border: 2px solid #b3d4d6; border-radius: 8px; margin-bottom: 15px; }
+        .botones { margin-bottom: 25px; }
+        button { font-size: 13px; padding: 3px 8px; margin-right: 2px; cursor: pointer; }
+        ul { margin: 0; padding-left: 40px; }
+        li { font-size: 15px; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+    <h2>Historial de Recorrido</h2>
+    <div id="mapa"></div>
+
+    <div class="botones">
+        <button onclick="iniciarSeguimiento()">Iniciar Seguimiento</button>
+        <button onclick="detenerSeguimiento()">Detener Seguimiento</button>
+        <button onclick="limpiarHistorial()">Limpiar Historial</button>
+    </div>
+
+    <h2>Historial de Posiciones</h2>
+    <ul id="lista-posiciones"></ul>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        
+        var map = L.map('mapa').setView([-24.74073, -65.39156], 16);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        var lineaRoja = L.polyline([], {color: 'red', weight: 4}).addTo(map);
+        var marcadorActual = null;
+        var arrayPuntos = [];
+        var contador = 1;
+        var watchId = null; 
+
+        
+        function registrarPunto(lat, lng) {
+            arrayPuntos.push([lat, lng]);
+            lineaRoja.setLatLngs(arrayPuntos);
+            
+            if (!marcadorActual) {
+                marcadorActual = L.marker([lat, lng]).addTo(map);
+            } else {
+                marcadorActual.setLatLng([lat, lng]);
+            }
+            
+            map.setView([lat, lng], 17);
+
+            var lista = document.getElementById('lista-posiciones');
+            var elemento = document.createElement('li');
+            elemento.innerHTML = `#${contador} &rarr; Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
+            lista.appendChild(elemento);
+            contador++;
+        }
+
+        function iniciarSeguimiento() {
+            if (watchId) return; 
+
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    registrarPunto(lat, lng);
+                }, function(error) {
+                    alert("Error de ubicación: Debes dar permisos en el navegador.");
+                }, {
+                    enableHighAccuracy: true
+                });
+            } else {
+                alert("Tu navegador no soporta geolocalización.");
+            }
+        }
+
+        function detenerSeguimiento() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId); 
+                watchId = null;
+            }
+        }
+
+        function limpiarHistorial() {
+            detenerSeguimiento();
+            arrayPuntos = [];
+            contador = 1;
+            lineaRoja.setLatLngs(arrayPuntos);
+            if (marcadorActual) {
+                map.removeLayer(marcadorActual);
+                marcadorActual = null;
+            }
+            document.getElementById('lista-posiciones').innerHTML = "";
+        }
+    </script>
+
+</body>
+</html>
