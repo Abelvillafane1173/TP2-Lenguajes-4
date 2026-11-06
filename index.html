@@ -3,57 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Recorrido Real</title>
+    <title>Historial de Recorrido Pro</title>
     
+    <!-- Fuente moderna de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     
     <style>
-        body { font-family: "Times New Roman", Times, serif; margin: 20px; color: black; }
-        h2 { margin-bottom: 15px; font-size: 24px; }
-        #mapa { width: 100%; height: 300px; border: 2px solid #b3d4d6; border-radius: 8px; margin-bottom: 15px; }
-        .botones { margin-bottom: 25px; }
-        button { font-size: 13px; padding: 3px 8px; margin-right: 2px; cursor: pointer; }
-        ul { margin: 0; padding-left: 40px; }
-        li { font-size: 15px; margin-bottom: 2px; }
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #ED213A 0%, #93291E 100%);
+            --gray-gradient: linear-gradient(135deg, #e2e8f0 0%, #edf2f7 100%);
+            --text-main: #2d3748;
+            --text-muted: #718096;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .contenedor {
+            background: rgba(255, 255, 255, 0.98);
+            max-width: 900px;
+            width: 100%;
+            padding: 35px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #edf2f7;
+        }
+
+        h2 { 
+            margin: 0; 
+            font-size: 26px; 
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Etiqueta de estado animada */
+        .status {
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .status.inactivo {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+
+        .status.activo {
+            background-color: #c6f6d5;
+            color: #22543d;
+            box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(72, 187, 120, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0); }
+        }
+
+        /* Mapa con diseño limpio */
+        #mapa { 
+            width: 100%; 
+            height: 400px; 
+            border-radius: 16px; 
+            margin-bottom: 25px; 
+            z-index: 1;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            border: 4px solid white;
+            outline: 2px solid #edf2f7;
+        }
+
+        /* Botones modernos */
+        .botones { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 35px; 
+        }
+
+        button { 
+            font-family: 'Poppins', sans-serif;
+            font-size: 15px; 
+            padding: 14px 24px; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: 600;
+            color: white;
+            flex: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
+        }
+        button:active { transform: translateY(0); }
+
+        .btn-iniciar { background: var(--success-gradient); }
+        .btn-detener { background: var(--danger-gradient); }
+        .btn-limpiar { 
+            background: var(--gray-gradient); 
+            color: var(--text-main); 
+        }
+
+        /* Historial y scrollbar personalizada */
+        h3 {
+            font-size: 18px;
+            color: var(--text-main);
+            margin-bottom: 15px;
+        }
+
+        .historial-caja {
+            background-color: #f7fafc;
+            border-radius: 16px;
+            padding: 20px;
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .historial-caja::-webkit-scrollbar { width: 8px; }
+        .historial-caja::-webkit-scrollbar-track { background: #edf2f7; border-radius: 10px; }
+        .historial-caja::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+        .historial-caja::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+
+        ul { margin: 0; padding: 0; list-style: none; }
+
+        li { 
+            background: white;
+            margin-bottom: 12px; 
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--primary);
+            transition: transform 0.2s;
+        }
+
+        li:hover { transform: translateX(5px); }
+        li:last-child { margin-bottom: 0; }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-right: 15px;
+            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.25);
+        }
+
+        .coords {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .coords b { color: var(--text-main); }
+        
+        /* Ocultar logo de Leaflet para más limpieza visual */
+        .leaflet-control-attribution { display: none !important; }
     </style>
 </head>
 <body>
 
-    <h2>Historial de Recorrido</h2>
-    <div id="mapa"></div>
+    <div class="contenedor">
+        <div class="header">
+            <h2>🌍 Tracking Dashboard</h2>
+            <div id="status-indicator" class="status inactivo">
+                <span id="status-dot">🔴</span> <span id="status-text">Sistema Inactivo</span>
+            </div>
+        </div>
+        
+        <div id="mapa"></div>
 
-    <div class="botones">
-        <button onclick="iniciarSeguimiento()">Iniciar Seguimiento</button>
-        <button onclick="detenerSeguimiento()">Detener Seguimiento</button>
-        <button onclick="limpiarHistorial()">Limpiar Historial</button>
+        <div class="botones">
+            <button class="btn-iniciar" onclick="iniciarSeguimiento()">▶ Iniciar Ruta</button>
+            <button class="btn-detener" onclick="detenerSeguimiento()">⏸ Detener</button>
+            <button class="btn-limpiar" onclick="limpiarHistorial()">🗑 Borrar Datos</button>
+        </div>
+
+        <h3>📋 Registro de Coordenadas</h3>
+        <div class="historial-caja">
+            <ul id="lista-posiciones">
+                <!-- Los puntos aparecerán aquí -->
+            </ul>
+        </div>
     </div>
 
-    <h2>Historial de Posiciones</h2>
-    <ul id="lista-posiciones"></ul>
-
+    <!-- Script de Leaflet -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>
-        
         var map = L.map('mapa').setView([-24.74073, -65.39156], 16);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri'
         }).addTo(map);
 
-        var lineaRoja = L.polyline([], {color: 'red', weight: 4}).addTo(map);
+        // Línea con el color violeta del tema
+        var lineaRoja = L.polyline([], {color: '#764ba2', weight: 5, opacity: 0.8}).addTo(map);
         var marcadorActual = null;
         var arrayPuntos = [];
         var contador = 1;
         var watchId = null; 
 
-        
+        var statusIndicator = document.getElementById('status-indicator');
+        var statusText = document.getElementById('status-text');
+        var statusDot = document.getElementById('status-dot');
+
+        function actualizarEstado(activo) {
+            if(activo) {
+                statusIndicator.className = 'status activo';
+                statusDot.innerText = '🟢';
+                statusText.innerText = 'Rastreando Ubicación...';
+            } else {
+                statusIndicator.className = 'status inactivo';
+                statusDot.innerText = '🔴';
+                statusText.innerText = 'Sistema Inactivo';
+            }
+        }
+
         function registrarPunto(lat, lng) {
             arrayPuntos.push([lat, lng]);
             lineaRoja.setLatLngs(arrayPuntos);
             
             if (!marcadorActual) {
-                marcadorActual = L.marker([lat, lng]).addTo(map);
+                // Personalización del marcador
+                var iconoPersonalizado = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: "<div style='background-color:#667eea;width:15px;height:15px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);'></div>",
+                    iconSize: [15, 15],
+                    iconAnchor: [7.5, 7.5]
+                });
+                marcadorActual = L.marker([lat, lng], {icon: iconoPersonalizado}).addTo(map);
             } else {
                 marcadorActual.setLatLng([lat, lng]);
             }
@@ -62,13 +284,24 @@
 
             var lista = document.getElementById('lista-posiciones');
             var elemento = document.createElement('li');
-            elemento.innerHTML = `#${contador} &rarr; Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
+            
+            elemento.innerHTML = `
+                <span class="badge">Punto #${contador}</span> 
+                <span class="coords">Latitud: <b>${lat.toFixed(5)}</b> &nbsp;|&nbsp; Longitud: <b>${lng.toFixed(5)}</b></span>
+            `;
+            
             lista.appendChild(elemento);
+            
+            var cajaHistorial = document.querySelector('.historial-caja');
+            cajaHistorial.scrollTop = cajaHistorial.scrollHeight;
+
             contador++;
         }
 
         function iniciarSeguimiento() {
             if (watchId) return; 
+
+            actualizarEstado(true);
 
             if (navigator.geolocation) {
                 watchId = navigator.geolocation.watchPosition(function(position) {
@@ -77,11 +310,13 @@
                     registrarPunto(lat, lng);
                 }, function(error) {
                     alert("Error de ubicación: Debes dar permisos en el navegador.");
+                    actualizarEstado(false);
                 }, {
                     enableHighAccuracy: true
                 });
             } else {
                 alert("Tu navegador no soporta geolocalización.");
+                actualizarEstado(false);
             }
         }
 
@@ -89,6 +324,7 @@
             if (watchId) {
                 navigator.geolocation.clearWatch(watchId); 
                 watchId = null;
+                actualizarEstado(false);
             }
         }
 
@@ -102,8 +338,8 @@
                 marcadorActual = null;
             }
             document.getElementById('lista-posiciones').innerHTML = "";
+            actualizarEstado(false);
         }
     </script>
-
 </body>
 </html>
